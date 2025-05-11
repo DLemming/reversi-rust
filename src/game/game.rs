@@ -1,3 +1,4 @@
+use std::fmt;
 use super::board::Bitboard;
 
 pub struct Move(pub u8);
@@ -51,6 +52,17 @@ impl Player {
     }
 }
 
+// Implement the Display trait for Player
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let player_str = match self {
+            Player::Black => "Black",
+            Player::White => "White",
+        };
+        write!(f, "{}", player_str)
+    }
+}
+
 pub struct GameState {
     board: Bitboard,
     to_move: Player,
@@ -63,7 +75,7 @@ impl GameState {
         let board: Bitboard = Bitboard::new(to_move.to_bool());
         let game_over: bool = false;
 
-        println!("{}", board);
+        println!("Initial State:\n{}", board);
 
         GameState {
             board,
@@ -87,6 +99,7 @@ impl GameState {
             }
         }
         self.board.valid = legal_moves;
+        println!("Current Player: {}", self.to_move);
         println!("{}", self.board);
     }
 }

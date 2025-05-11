@@ -47,7 +47,7 @@ impl Bitboard {
     }
 
     // Sweep in all 8 directions and flip discs if necessary
-    pub fn apply_move(mut self, bit_idx: u8, is_white: bool) -> Self {
+    pub fn apply_move(&mut self, bit_idx: u8, is_white: bool) {
         let (player, opponent) = get_sides(&self, is_white);
 
         let move_bit = 1u64 << bit_idx;
@@ -65,8 +65,6 @@ impl Bitboard {
             self.black |= move_bit | flips;
             self.white &= !flips;
         }
-
-        self
     }
 }
 
@@ -86,11 +84,11 @@ impl fmt::Display for Bitboard {
                 let idx = row * 8 + col;
                 let mask = 1u64 << idx;
                 let c = if self.black & mask != 0 {
-                    'X'
+                    'B'
                 } else if self.white & mask != 0 {
-                    'O'
+                    'W'
                 } else if self.valid & mask != 0 {
-                    '-' // legal move
+                    '□' // legal move
                 } else {
                     '.'
                 };

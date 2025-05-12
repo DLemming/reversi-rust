@@ -29,7 +29,7 @@ impl Bitboard {
 
     /// Returns a bitmask of all empty squares where `side` can play
     pub fn legal_moves(&self, is_white: bool) -> u64 {
-        let (player, opponent) = get_sides(&self, is_white);
+        let (player, opponent) = self.get_sides(is_white);
 
         // Sweep in all 8 directions given delta_bit
         let mut moves: u64 = 0;
@@ -47,8 +47,8 @@ impl Bitboard {
     }
 
     // Sweep in all 8 directions and flip discs if necessary
-    pub fn apply_move(&mut self, bit_idx: u8, is_white: bool) {
-        let (player, opponent) = get_sides(&self, is_white);
+    pub fn apply_move(&self, bit_idx: u8, is_white: bool) -> Bitboard {
+        let (player, opponent) = self.get_sides(is_white);
 
         let move_bit = 1u64 << bit_idx;
         let mut flips = 0;
@@ -58,12 +58,35 @@ impl Bitboard {
             flips |= flips_dir(player, opponent, bit_idx, delta);
         }
 
+        let mut white = self.white;
+        let mut black = self.black;
+
         if is_white {
-            self.white |= move_bit | flips;
-            self.black &= !flips;
+            white |= move_bit | flips;
+            black &= !flips;
         } else {
-            self.black |= move_bit | flips;
-            self.white &= !flips;
+            black |= move_bit | flips;
+            white &= !flips;
+        }
+
+        Bitboard { white, black, valid: 0}
+    }
+
+    /// Get Player, Opponent from Board and is_white
+    fn get_sides(&self, is_white: bool) -> (u64, u64) {
+        if is_white {
+            (self.white, self.black)
+        } else {
+            (self.black, self.white)
+        }
+    }
+
+    /// Get a players score
+    pub fn score(&self, is_white: bool) -> u32 {
+        if is_white {
+            self.white.count_ones()
+        } else {
+            self.black.count_ones()
         }
     }
 }
@@ -107,7 +130,11 @@ impl fmt::Display for Bitboard {
 // Internal helpers & constants
 // --------------------------------------
 
-const DIRECTIONS: [i8; 8] = [1, -1, 8, -8, 9, 7, -7, -9];
+const DIRECTIONS: [i8; 8] = [
+    -9, -8, -7,
+    -1,      1,
+     7,  8,  9
+];
 
 const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
@@ -176,14 +203,5 @@ fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8) -> u64 {
         } else {
             return 0; // empty square or invalid
         }
-    }
-}
-
-/// Get Player, Opponent from Board and is_white
-fn get_sides(board: &Bitboard, is_white: bool) -> (u64, u64) {
-    if is_white {
-        (board.white, board.black)
-    } else {
-        (board.black, board.white)
     }
 }

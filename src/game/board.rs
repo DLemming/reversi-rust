@@ -1,3 +1,5 @@
+use std::ops::{Shl, Shr};
+
 #[derive(Copy, Clone)]
 pub struct Bitboard {
     pub white: u64,
@@ -68,6 +70,7 @@ impl Bitboard {
     }
 
     /// Helper to get current player's and opponent's disks
+    #[inline(always)]
     fn get_sides(&self, is_white: bool) -> (u64, u64) {
         match is_white {
             true => (self.white, self.black),
@@ -116,37 +119,28 @@ const NOT_H_FILE_OR_ROW_8: u64 = NOT_H_FILE & NOT_ROW_8;
 /// - `delta`: positive = <<, negative = >>
 /// - `edge_mask`: to prevent wrap‐around
 ///
+#[inline(always)]
 fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
     let mask_opponent = opponent_disks & mask;
 
-    // 1) adjacent opponent stones
-    let mut temp = if delta > 0 {
-        (player_disks << shift) & mask_opponent
-    } else {
-        (player_disks >> shift) & mask_opponent
-    };
+    // 0) define shift function closure to avoid branching
+    let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
     
     // 2) sweep opponent chain
+    let mut temp = bitshift(player_disks, shift) & mask_opponent;
     let mut flips = temp;
     for _ in 0..5 {
-        temp = if delta > 0 {
-            (temp << shift) & mask_opponent
-        } else {
-            (temp >> shift) & mask_opponent
-        };
+        temp = bitshift(temp, shift) & mask_opponent;
         flips |= temp;
     }
 
     // 3) step into candidate square (square right after traversed opponents)
-    if delta > 0 {
-        flips << shift
-    } else {
-        flips >> shift
-    }
+    bitshift(flips, shift)
 }
 
 /// Compute all disks to flip given a move
+#[inline(always)]
 fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8) -> u64 {
     let mut flips = 0u64;
     let mut current = bit_idx as i8;

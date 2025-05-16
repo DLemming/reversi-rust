@@ -28,15 +28,15 @@ impl Bitboard {
 
         // Sweep in all 8 directions given delta_bit
         let mut moves: u64 = 0;
-        moves |= moves_dir(player, opponent, 1, NOT_H_FILE);              // East
-        moves |= moves_dir(player, opponent, -1, NOT_A_FILE);             // West
-        moves |= moves_dir(player, opponent, 8, NOT_ROW_8);               // South
-        moves |= moves_dir(player, opponent, -8, NOT_ROW_1);              // North
-        moves |= moves_dir(player, opponent, 9, NOT_H_FILE_OR_ROW_8);     // SE
-        moves |= moves_dir(player, opponent, 7, NOT_A_FILE_OR_ROW_8);     // SW
-        moves |= moves_dir(player, opponent, -7, NOT_H_FILE_OR_ROW_1);    // NE
         moves |= moves_dir(player, opponent, -9, NOT_A_FILE_OR_ROW_1);    // NW
-
+        moves |= moves_dir(player, opponent, -8, NOT_ROW_1);              // North
+        moves |= moves_dir(player, opponent, -7, NOT_H_FILE_OR_ROW_1);    // NE
+        moves |= moves_dir(player, opponent, -1, NOT_A_FILE);             // West
+        moves |= moves_dir(player, opponent, 1, NOT_H_FILE);              // East
+        moves |= moves_dir(player, opponent, 7, NOT_A_FILE_OR_ROW_8);     // SW
+        moves |= moves_dir(player, opponent, 8, NOT_ROW_8);               // South
+        moves |= moves_dir(player, opponent, 9, NOT_H_FILE_OR_ROW_8);     // SE
+        
         // Only empty squares
         moves & !(player | opponent)
     }
@@ -47,9 +47,14 @@ impl Bitboard {
 
         // sweep along all 8 directions
         let mut flips = 0;
-        for delta in DIRECTIONS {
-            flips |= flips_dir(player, opponent, bit_idx, delta);
-        }
+        flips |= flips_dir(player, opponent, bit_idx, -9, NOT_A_FILE_OR_ROW_1); // NW
+        flips |= flips_dir(player, opponent, bit_idx, -8, NOT_ROW_1);            // North
+        flips |= flips_dir(player, opponent, bit_idx, -7, NOT_H_FILE_OR_ROW_1); // NE
+        flips |= flips_dir(player, opponent, bit_idx, -1, NOT_A_FILE);          // West
+        flips |= flips_dir(player, opponent, bit_idx, 1, NOT_H_FILE);           // East
+        flips |= flips_dir(player, opponent, bit_idx, 7, NOT_A_FILE_OR_ROW_8);  // SW
+        flips |= flips_dir(player, opponent, bit_idx, 8, NOT_ROW_8);             // South
+        flips |= flips_dir(player, opponent, bit_idx, 9, NOT_H_FILE_OR_ROW_8);  // SE
 
         // Return new, updated bitboard
         let move_bit = 1u64 << bit_idx;
@@ -98,7 +103,7 @@ impl Iterator for BitIter {
 // Internal helpers & constants
 // --------------------------------------
 
-const DIRECTIONS: [i8; 8] = [
+const _DIRECTIONS: [i8; 8] = [
     -9, -8, -7,
     -1,      1,
      7,  8,  9
@@ -141,26 +146,27 @@ fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u6
 
 /// Compute all disks to flip given a move
 #[inline(always)]
-fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8) -> u64 {
+fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
+    let shift = delta.abs() as u8;
+    let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
+
+    // start bit = the move played
+    let mut bit= 1u64 << bit_idx;
     let mut flips = 0u64;
-    let mut current = bit_idx as i8;
 
-    loop {
-        current += delta;
+    bit &= mask;
+    bit = bitshift(bit, shift);
 
-        // Check board bounds
-        if current < 0 || current > 63 {
-            return 0;
-        }
+    while bit != 0 && (bit & opponent) != 0 {
+        flips |= bit;   // collect potential flips
 
-        let bit = 1u64 << current;
+        bit &= mask;
+        bit = bitshift(bit, shift);
+    };
 
-        if bit & opponent != 0 {
-            flips |= bit; // potential flip
-        } else if bit & player != 0 {
-            return flips; // confirmed flip
-        } else {
-            return 0; // empty square or invalid
-        }
+    if bit & player != 0 {
+        flips
+    } else {
+        0
     }
 }

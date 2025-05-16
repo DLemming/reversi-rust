@@ -1,18 +1,13 @@
-use std::fmt;
-
-// --------------------------------------
-// Public API
-// --------------------------------------
-
+#[derive(Copy, Clone)]
 pub struct Bitboard {
     pub white: u64,
     pub black: u64,
-    /// precomputed legal moves for the *side to move* (set in `new`)
-    pub valid: u64,
 }
 
+pub struct BitIter(pub u64);
+
 impl Bitboard {
-    pub fn new(is_white: bool) -> Self {
+    pub fn new() -> Self {
         // Starting position: center four
         let white = (1u64 << 27) | (1u64 << 36);
         let black = (1u64 << 28) | (1u64 << 35) ;
@@ -21,10 +16,8 @@ impl Bitboard {
         //let white = 0x244A148810000000;
         //let black = 0x8A15681142240000;
 
-        // Build board and then compute legal moves
-        let mut board = Bitboard { white, black, valid: 0 };
-        board.valid = board.legal_moves(is_white);
-        board
+        // Build board
+        Bitboard { white, black }
     }
 
     /// Returns a bitmask of all empty squares where `side` can play
@@ -46,85 +39,57 @@ impl Bitboard {
         moves & !(player | opponent)
     }
 
-    // Sweep in all 8 directions and flip discs if necessary
+    /// Sweep in all 8 directions and flip discs if necessary
     pub fn apply_move(&self, bit_idx: u8, is_white: bool) -> Bitboard {
         let (player, opponent) = self.get_sides(is_white);
 
-        let move_bit = 1u64 << bit_idx;
-        let mut flips = 0;
-
         // sweep along all 8 directions
+        let mut flips = 0;
         for delta in DIRECTIONS {
             flips |= flips_dir(player, opponent, bit_idx, delta);
         }
 
-        let mut white = self.white;
-        let mut black = self.black;
-
+        // Return new, updated bitboard
+        let move_bit = 1u64 << bit_idx;
         if is_white {
-            white |= move_bit | flips;
-            black &= !flips;
+            let white = self.white | move_bit | flips;
+            let black = self.black & !flips;
+            return Bitboard { white, black }
         } else {
-            black |= move_bit | flips;
-            white &= !flips;
+            let black = self.black | move_bit | flips;
+            let white = self.white & !flips;
+            return Bitboard { white, black }
         }
-
-        Bitboard { white, black, valid: 0}
     }
 
-    /// Get Player, Opponent from Board and is_white
+    /// Get a player scores
+    pub fn score(&self) -> (i8, i8) {
+        (self.white.count_ones() as i8, self.black.count_ones() as i8)
+    }
+
+    /// Helper to get current player's and opponent's disks
     fn get_sides(&self, is_white: bool) -> (u64, u64) {
-        if is_white {
-            (self.white, self.black)
-        } else {
-            (self.black, self.white)
+        match is_white {
+            true => (self.white, self.black),
+            false => (self.black, self.white)
         }
     }
 
-    /// Get a players score
-    pub fn score(&self, is_white: bool) -> u32 {
-        if is_white {
-            self.white.count_ones()
+}
+
+impl Iterator for BitIter {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0 == 0 {
+            None
         } else {
-            self.black.count_ones()
+            let bit = self.0.trailing_zeros() as u8;
+            self.0 &= self.0 - 1; // clear lowest set bit
+            Some(bit)
         }
     }
 }
-
-
-// --------------------------------------
-// Display impl: pretty‐print board + valid
-// --------------------------------------
-
-impl fmt::Display for Bitboard {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // row and col enumerating from top left, as per reversi board convention
-        // top left is bit index 63 (msb)
-        writeln!(f, "  A B C D E F G H")?;
-        for row in 0..8 {
-            write!(f, "{} ", row+1)?;
-            for col in 0..8 {
-                let idx = row * 8 + col;
-                let mask = 1u64 << idx;
-                let c = if self.black & mask != 0 {
-                    'B'
-                } else if self.white & mask != 0 {
-                    'W'
-                } else if self.valid & mask != 0 {
-                    '□' // legal move
-                } else {
-                    '.'
-                };
-                write!(f, "{} ", c)?;
-            }
-            write!(f, "{}", row+1)?;
-            writeln!(f)?;
-        }
-        writeln!(f, "  A B C D E F G H")?;
-        Ok(())
-    }
-}
-
 
 // --------------------------------------
 // Internal helpers & constants

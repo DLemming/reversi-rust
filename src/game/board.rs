@@ -157,14 +157,14 @@ fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u
     bit &= mask;
     bit = bitshift(bit, shift);
 
-    while bit != 0 && (bit & opponent) != 0 {
+    while (bit & opponent) != 0 {
         flips |= bit;   // collect potential flips
 
         bit &= mask;
         bit = bitshift(bit, shift);
     };
 
-    if bit & player != 0 {
+    if (bit & player) != 0 {
         flips
     } else {
         0

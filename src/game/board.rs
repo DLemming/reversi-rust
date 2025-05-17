@@ -60,7 +60,7 @@ impl Bitboard {
         flips |= flips_dir_faster(player, opponent, bit_idx, 9, NOT_H_FILE_OR_ROW_8);  // SE
 
         // Return new, updated bitboard
-        let move_bit = 1u64 << bit_idx;
+        let move_bit = BIT_LOOKUP[bit_idx as usize];
         if is_white {
             let white = self.white | move_bit | flips;
             let black = self.black & !flips;
@@ -105,6 +105,18 @@ impl Iterator for BitIter {
 // --------------------------------------
 // Internal helpers & constants
 // --------------------------------------
+
+// Instead of bitshifting the bit_idx, create lookup table.
+// No cycles wasted, just static lookup. Huge boost in performance.
+const BIT_LOOKUP: [u64; 64] = {
+    let mut arr = [0u64; 64];
+    let mut i = 0;
+    while i < 64 {
+        arr[i] = 1u64 << i;
+        i += 1;
+    }
+    arr
+};
 
 const _DIRECTIONS: [i8; 8] = [
     -9, -8, -7,
@@ -155,7 +167,7 @@ fn _flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> 
     let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
 
     // start bit = the move played
-    let mut bit= 1u64 << bit_idx;
+    let mut bit= BIT_LOOKUP[bit_idx as usize];
     let mut flips = 0u64;
 
     bit &= mask;
@@ -182,7 +194,7 @@ fn flips_dir_faster(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u6
 
     let opponent_masked = opponent & mask;
 
-    let b0 = (1u64 << bit_idx) & mask;      // origin masked
+    let b0 = BIT_LOOKUP[bit_idx as usize] & mask;      // origin masked
     let m1 = opponent_masked & bitshift(b0, shift);          // first step: is the neighbor an opponent?
     let m2 = opponent_masked & bitshift(m1, shift);          // two in a row?
     let m3 = opponent_masked & bitshift(m2, shift);          // two in a row?

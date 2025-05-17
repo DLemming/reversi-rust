@@ -14,6 +14,9 @@ impl Bitboard {
         let white = (1u64 << 27) | (1u64 << 36);
         let black = (1u64 << 28) | (1u64 << 35) ;
 
+        //let white = (1u64 << 1) | (1u64 << 2);
+        //let black = (1u64);
+
         // test complex position
         //let white = 0x244A148810000000;
         //let black = 0x8A15681142240000;
@@ -166,6 +169,31 @@ fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u
 
     if (bit & player) != 0 {
         flips
+    } else {
+        0
+    }
+}
+
+#[inline(always)]
+fn flips_dir_faster(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
+    let shift = delta.abs() as u8;
+    let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
+
+    let opponent_masked = opponent & mask;
+
+    let b0 = (1u64 << bit_idx) & mask;      // origin masked
+
+    let m1 = opponent_masked & bitshift(b0, shift);          // first step: is the neighbor an opponent?
+    let m2 = opponent_masked & bitshift(m1, shift);          // two in a row?
+    let m3 = opponent_masked & bitshift(m2, shift);          // two in a row?
+    let m4 = opponent_masked & bitshift(m3, shift);          // two in a row?
+    let m5 = opponent_masked & bitshift(m4, shift);          // two in a row?
+    let m6 = opponent_masked & bitshift(m5, shift);          // two in a row?
+
+    let pot_flips  = m1 | m2 | m3 | m4 | m5 | m6;
+    let cap = bitshift(pot_flips, shift);
+    if (cap & player) != 0 {
+        pot_flips
     } else {
         0
     }

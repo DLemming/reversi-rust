@@ -50,14 +50,14 @@ impl Bitboard {
 
         // sweep along all 8 directions
         let mut flips = 0;
-        flips |= flips_dir(player, opponent, bit_idx, -9, NOT_A_FILE_OR_ROW_1); // NW
-        flips |= flips_dir(player, opponent, bit_idx, -8, NOT_ROW_1);            // North
-        flips |= flips_dir(player, opponent, bit_idx, -7, NOT_H_FILE_OR_ROW_1); // NE
-        flips |= flips_dir(player, opponent, bit_idx, -1, NOT_A_FILE);          // West
-        flips |= flips_dir(player, opponent, bit_idx, 1, NOT_H_FILE);           // East
-        flips |= flips_dir(player, opponent, bit_idx, 7, NOT_A_FILE_OR_ROW_8);  // SW
-        flips |= flips_dir(player, opponent, bit_idx, 8, NOT_ROW_8);             // South
-        flips |= flips_dir(player, opponent, bit_idx, 9, NOT_H_FILE_OR_ROW_8);  // SE
+        flips |= flips_dir_faster(player, opponent, bit_idx, -9, NOT_A_FILE_OR_ROW_1); // NW
+        flips |= flips_dir_faster(player, opponent, bit_idx, -8, NOT_ROW_1);            // North
+        flips |= flips_dir_faster(player, opponent, bit_idx, -7, NOT_H_FILE_OR_ROW_1); // NE
+        flips |= flips_dir_faster(player, opponent, bit_idx, -1, NOT_A_FILE);          // West
+        flips |= flips_dir_faster(player, opponent, bit_idx, 1, NOT_H_FILE);           // East
+        flips |= flips_dir_faster(player, opponent, bit_idx, 7, NOT_A_FILE_OR_ROW_8);  // SW
+        flips |= flips_dir_faster(player, opponent, bit_idx, 8, NOT_ROW_8);             // South
+        flips |= flips_dir_faster(player, opponent, bit_idx, 9, NOT_H_FILE_OR_ROW_8);  // SE
 
         // Return new, updated bitboard
         let move_bit = 1u64 << bit_idx;
@@ -149,7 +149,8 @@ fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u6
 
 /// Compute all disks to flip given a move
 #[inline(always)]
-fn flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
+// slower but better to understand version of flips_dir_faster
+fn _flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
     let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
 
@@ -182,7 +183,6 @@ fn flips_dir_faster(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u6
     let opponent_masked = opponent & mask;
 
     let b0 = (1u64 << bit_idx) & mask;      // origin masked
-
     let m1 = opponent_masked & bitshift(b0, shift);          // first step: is the neighbor an opponent?
     let m2 = opponent_masked & bitshift(m1, shift);          // two in a row?
     let m3 = opponent_masked & bitshift(m2, shift);          // two in a row?

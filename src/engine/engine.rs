@@ -54,34 +54,37 @@ impl Engine {
 
         // depth 0 or game over
         if (depth == 0) || (node.legal_moves == 0) {
-            return self.static_eval(&node.board);
+            return static_eval(&node.board);
         }
 
-        let mut best_eval = if node.is_white { i8::MIN } else { i8::MAX };
+        if node.is_white {
+            let mut best_eval = i8::MIN;
 
-        for mv in BitIter64(node.legal_moves) {
-            let eval = self.minimax(node.apply_move(mv), depth - 1, alpha, beta);
-
-            if node.is_white {
+            for mv in BitIter64(node.legal_moves) {
+                let eval = self.minimax(node.apply_move(mv), depth - 1, alpha, beta);
                 best_eval = best_eval.max(eval);
                 alpha = alpha.max(best_eval);
-            } else {
+
+                if beta <= alpha { return best_eval; }
+            }
+            return best_eval;
+        } else {
+            let mut best_eval = i8::MAX;
+
+            for mv in BitIter64(node.legal_moves) {
+                let eval = self.minimax(node.apply_move(mv), depth - 1, alpha, beta);
                 best_eval = best_eval.min(eval);
                 beta = beta.min(best_eval);
-            }
 
-            if beta <= alpha {
-                return best_eval; // PRUNE!
+                if beta <= alpha { return best_eval; }
             }
+            return best_eval;
         }
-
-        best_eval
     }
+}
 
-    fn static_eval(&self, board: &Bitboard) -> i8 {
-        let (white, black) = board.score();
-
-        // white wants >0 (maximizing), black wants <0 (minimizing)
-        return white as i8 - black;
-    }
+#[inline(always)]
+fn static_eval(board: &Bitboard) -> i8 {
+    let (white, black) = board.score();
+    return white - black;
 }

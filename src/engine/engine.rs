@@ -1,12 +1,12 @@
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
-use crate::game::game::GameState;
-use crate::game::board::{Bitboard, BitIter64};
 use crate::engine::node::Node;
+use crate::game::board::{BitIter64, Bitboard};
+use crate::game::game::GameState;
 
 pub struct Engine {
-    pub depth: u8, // Max depth to search
+    pub depth: u8,                    // Max depth to search
     pub node_counter: RefCell<usize>, // <- shared mutability, no threading
     pub last_search_time: RefCell<Duration>,
 }
@@ -16,7 +16,7 @@ impl Engine {
         Engine {
             depth,
             node_counter: RefCell::new(0),
-            last_search_time: RefCell::new(Duration::ZERO)
+            last_search_time: RefCell::new(Duration::ZERO),
         }
     }
 
@@ -32,16 +32,11 @@ impl Engine {
 
         // use custom Bit iterator
         for mv in BitIter64(node.legal_moves) {
-            let score = self.minimax(
-                node.apply_move(mv),
-                self.depth - 1,
-                i8::MIN,
-                i8::MAX
-            );
+            let score = self.minimax(node.apply_move(mv), self.depth - 1, i8::MIN, i8::MAX);
 
-            let is_better = (node.is_white && score > best_score)
-                        || (!node.is_white && score < best_score);
-            
+            let is_better =
+                (node.is_white && score > best_score) || (!node.is_white && score < best_score);
+
             if is_better {
                 best_score = score;
                 best_move = Some(mv);
@@ -53,7 +48,7 @@ impl Engine {
 
         (best_score, best_move)
     }
-    
+
     fn minimax(&self, node: Node, depth: u8, mut alpha: i8, mut beta: i8) -> i8 {
         *self.node_counter.borrow_mut() += 1;
 
@@ -62,11 +57,11 @@ impl Engine {
             return self.static_eval(&node.board);
         }
 
-        let mut best_eval = if node.is_white { i8::MIN } else {i8::MAX };
+        let mut best_eval = if node.is_white { i8::MIN } else { i8::MAX };
 
         for mv in BitIter64(node.legal_moves) {
             let eval = self.minimax(node.apply_move(mv), depth - 1, alpha, beta);
-            
+
             if node.is_white {
                 best_eval = best_eval.max(eval);
                 alpha = alpha.max(best_eval);
@@ -74,7 +69,7 @@ impl Engine {
                 best_eval = best_eval.min(eval);
                 beta = beta.min(best_eval);
             }
-            
+
             if beta <= alpha {
                 return best_eval; // PRUNE!
             }
@@ -82,7 +77,7 @@ impl Engine {
 
         best_eval
     }
-    
+
     fn static_eval(&self, board: &Bitboard) -> i8 {
         let (white, black) = board.score();
 

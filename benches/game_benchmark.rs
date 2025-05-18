@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use reversi::engine::engine::Engine;
 use reversi::game::game::GameState;
 
@@ -9,7 +9,7 @@ fn game_benchmark(c: &mut Criterion) {
     group.sample_size(10); // Optional: how many samples Criterion collects
 
     let depth = 9;
-    
+
     group.bench_function("Run entire game", |b| {
         b.iter(|| {
             let engine = Engine::new(depth);
@@ -31,7 +31,7 @@ fn game_benchmark(c: &mut Criterion) {
                         println!("ERROR. Should not happen. Engine did not find a move!");
                         0
                     }
-                }; 
+                };
                 mv
             }
         });

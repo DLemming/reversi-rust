@@ -1,9 +1,8 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use reversi::engine::engine::Engine;
 use reversi::game::game::GameState;
 
 fn minimax_benchmark(c: &mut Criterion) {
-
     let mut group = c.benchmark_group("minimax");
 
     group.measurement_time(std::time::Duration::from_secs(10)); // or however long you want

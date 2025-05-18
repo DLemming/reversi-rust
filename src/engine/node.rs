@@ -3,7 +3,7 @@ use crate::game::board::Bitboard;
 pub struct Node {
     pub board: Bitboard,
     pub is_white: bool,
-    pub legal_moves: u64
+    pub legal_moves: u64,
 }
 
 impl Node {
@@ -11,14 +11,14 @@ impl Node {
         Node {
             board,
             is_white,
-            legal_moves
+            legal_moves,
         }
     }
 
     pub fn apply_move(&self, mv: u64) -> Self {
         let new_board = self.board.apply_move(mv, self.is_white);
         let (new_player, legal_moves) = switch_player(&new_board, self.is_white);
-        
+
         Node::new(new_board, new_player, legal_moves)
     }
 }
@@ -29,6 +29,6 @@ fn switch_player(board: &Bitboard, is_white: bool) -> (bool, u64) {
 
     match legal_moves == 0 {
         true => (is_white, board.legal_moves(is_white)), // current player moves again
-        false => (opponent, legal_moves) // regular switch
+        false => (opponent, legal_moves),                // regular switch
     }
 }

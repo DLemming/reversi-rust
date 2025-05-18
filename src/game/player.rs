@@ -1,6 +1,9 @@
 use std::fmt;
 
-pub enum Player { Black, White }
+pub enum Player {
+    Black,
+    White,
+}
 
 impl Player {
     pub fn to_bool(&self) -> bool {

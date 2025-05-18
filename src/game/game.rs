@@ -1,11 +1,11 @@
-use std::fmt;
 use crate::game::board::Bitboard;
 use crate::game::player::Player;
+use std::fmt;
 
 pub struct GameState {
     pub board: Bitboard,
     to_move: Player,
-    game_over:  bool
+    game_over: bool,
 }
 
 impl GameState {
@@ -51,7 +51,7 @@ impl GameState {
     }
 
     pub fn game_over(&self) -> bool {
-        return self.game_over
+        return self.game_over;
     }
 
     pub fn current_player(&self) -> Player {
@@ -69,7 +69,7 @@ impl fmt::Display for GameState {
         // top left is bit index 63 (msb)
         writeln!(f, "  A B C D E F G H")?;
         for row in 0..8 {
-            write!(f, "{} ", row+1)?;
+            write!(f, "{} ", row + 1)?;
             for col in 0..8 {
                 let idx = row * 8 + col;
                 let mask = 1u64 << idx;
@@ -84,7 +84,7 @@ impl fmt::Display for GameState {
                 };
                 write!(f, "{} ", c)?;
             }
-            write!(f, "{}", row+1)?;
+            write!(f, "{}", row + 1)?;
             writeln!(f)?;
         }
         writeln!(f, "  A B C D E F G H")?;

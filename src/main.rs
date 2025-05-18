@@ -7,7 +7,6 @@ use game::player::Player;
 mod engine;
 use engine::engine::Engine;
 
-
 fn main() {
     let mut game: GameState = GameState::new();
     let engine = Engine::new(15);
@@ -19,7 +18,7 @@ fn main() {
         // Get current player's move
         let mv: u64 = match game.current_player() {
             Player::White => get_engine_move(&game, &engine),
-            Player::Black => get_human_move(&game)
+            Player::Black => get_human_move(&game),
         };
 
         game.apply_move(mv);
@@ -60,7 +59,7 @@ fn get_human_move(game: &GameState) -> u64 {
             println!("Illegal move. Try again.");
             continue;
         }
-        return mv
+        return mv;
     }
 }
 
@@ -73,9 +72,14 @@ fn get_engine_move(game: &GameState, engine: &Engine) -> u64 {
             println!("ERROR. Engine did not find a move!");
             0
         }
-    }; 
+    };
 
-    println!("Engine played: {}. Score in {} moves: {}.\n", Move::to_str(mv), engine.depth, score);
+    println!(
+        "Engine played: {}. Score in {} moves: {}.\n",
+        Move::to_str(mv),
+        engine.depth,
+        score
+    );
     println!("Nodes searched: {}", engine.node_counter.borrow());
     println!("Time elapsed: {:.2?}", engine.last_search_time.borrow());
 

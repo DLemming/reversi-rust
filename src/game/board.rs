@@ -43,35 +43,18 @@ impl Bitboard {
     /// Sweep in all 8 directions and flip discs if necessary
     #[inline(always)]
     pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
-        let mut flips = 0;
-
-        // sweep along all 8 directions
         if is_white {
-            flips |= flips_dir_faster(self.white, self.black, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
-            flips |= flips_dir_faster(self.white, self.black, mv, -8, NOT_ROW_1); // North
-            flips |= flips_dir_faster(self.white, self.black, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
-            flips |= flips_dir_faster(self.white, self.black, mv, -1, NOT_A_FILE); // West
-            flips |= flips_dir_faster(self.white, self.black, mv, 1, NOT_H_FILE); // East
-            flips |= flips_dir_faster(self.white, self.black, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
-            flips |= flips_dir_faster(self.white, self.black, mv, 8, NOT_ROW_8); // South
-            flips |= flips_dir_faster(self.white, self.black, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
-
-            let white = self.white | mv | flips;
-            let black = self.black & !flips;
-            return Bitboard { white, black };
+            let (player, opponent) = sweep(self.white, self.black, mv);
+            return Bitboard {
+                white: player,
+                black: opponent,
+            };
         } else {
-            flips |= flips_dir_faster(self.black, self.white, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
-            flips |= flips_dir_faster(self.black, self.white, mv, -8, NOT_ROW_1); // North
-            flips |= flips_dir_faster(self.black, self.white, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
-            flips |= flips_dir_faster(self.black, self.white, mv, -1, NOT_A_FILE); // West
-            flips |= flips_dir_faster(self.black, self.white, mv, 1, NOT_H_FILE); // East
-            flips |= flips_dir_faster(self.black, self.white, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
-            flips |= flips_dir_faster(self.black, self.white, mv, 8, NOT_ROW_8); // South
-            flips |= flips_dir_faster(self.black, self.white, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
-
-            let black = self.black | mv | flips;
-            let white = self.white & !flips;
-            return Bitboard { white, black };
+            let (player, opponent) = sweep(self.black, self.white, mv);
+            return Bitboard {
+                white: opponent,
+                black: player,
+            };
         };
     }
 
@@ -113,16 +96,29 @@ const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
 const NOT_ROW_1: u64 = 0xffffffffffffff00;
 const NOT_ROW_8: u64 = 0x00ffffffffffffff;
-
 const NOT_A_FILE_OR_ROW_1: u64 = NOT_A_FILE & NOT_ROW_1;
 const NOT_A_FILE_OR_ROW_8: u64 = NOT_A_FILE & NOT_ROW_8;
 const NOT_H_FILE_OR_ROW_1: u64 = NOT_H_FILE & NOT_ROW_1;
 const NOT_H_FILE_OR_ROW_8: u64 = NOT_H_FILE & NOT_ROW_8;
 
+#[inline(always)]
+fn sweep(player: u64, opponent: u64, mv: u64) -> (u64, u64) {
+    // sweep along all 8 directions
+    let mut flips = 0;
+    flips |= flips_dir_faster(player, opponent, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
+    flips |= flips_dir_faster(player, opponent, mv, -8, NOT_ROW_1); // North
+    flips |= flips_dir_faster(player, opponent, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
+    flips |= flips_dir_faster(player, opponent, mv, -1, NOT_A_FILE); // West
+    flips |= flips_dir_faster(player, opponent, mv, 1, NOT_H_FILE); // East
+    flips |= flips_dir_faster(player, opponent, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
+    flips |= flips_dir_faster(player, opponent, mv, 8, NOT_ROW_8); // South
+    flips |= flips_dir_faster(player, opponent, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
+    let player = player | mv | flips;
+    let opponent = opponent & !flips;
+    (player, opponent)
+}
+
 /// Compute all candidate moves in one direction:
-/// - `player`, `opponent`: bitboards
-/// - `delta`: positive = <<, negative = >>
-/// - `edge_mask`: to prevent wrap‐around
 #[inline(always)]
 fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
@@ -134,6 +130,7 @@ fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u6
     // 2) sweep opponent chain
     let mut temp = bitshift(player_disks, shift) & mask_opponent;
     let mut flips = temp;
+
     for _ in 0..5 {
         temp = bitshift(temp, shift) & mask_opponent;
         flips |= temp;

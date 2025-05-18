@@ -19,7 +19,7 @@ impl Bitboard {
     /// Returns a bitmask of all empty squares where `side` can play
     #[inline(always)]
     pub fn legal_moves(&self, is_white: bool) -> u64 {
-        let (player, opponent) = self.get_sides(is_white);
+        let (player, opponent) = if is_white { (self.white, self.black) } else { (self.black, self.white) };
 
         // Sweep in all 8 directions given delta_bit
         let mut moves: u64 = 0;
@@ -39,7 +39,7 @@ impl Bitboard {
     /// Sweep in all 8 directions and flip discs if necessary
     #[inline(always)]
     pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
-        let (player, opponent) = self.get_sides(is_white);
+        let (player, opponent) = if is_white { (self.white, self.black) } else { (self.black, self.white) };
 
         // sweep along all 8 directions
         let mut flips = 0;
@@ -69,16 +69,6 @@ impl Bitboard {
     pub fn score(&self) -> (i8, i8) {
         (self.white.count_ones() as i8, self.black.count_ones() as i8)
     }
-
-    /// Helper to get current player's and opponent's disks
-    #[inline(always)]
-    fn get_sides(&self, is_white: bool) -> (u64, u64) {
-        match is_white {
-            true => (self.white, self.black),
-            false => (self.black, self.white)
-        }
-    }
-
 }
 
 

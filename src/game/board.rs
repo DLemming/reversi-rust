@@ -43,33 +43,36 @@ impl Bitboard {
     /// Sweep in all 8 directions and flip discs if necessary
     #[inline(always)]
     pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
-        let (player, opponent) = if is_white {
-            (self.white, self.black)
-        } else {
-            (self.black, self.white)
-        };
+        let mut flips = 0;
 
         // sweep along all 8 directions
-        let mut flips = 0;
-        flips |= flips_dir_faster(player, opponent, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
-        flips |= flips_dir_faster(player, opponent, mv, -8, NOT_ROW_1); // North
-        flips |= flips_dir_faster(player, opponent, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
-        flips |= flips_dir_faster(player, opponent, mv, -1, NOT_A_FILE); // West
-        flips |= flips_dir_faster(player, opponent, mv, 1, NOT_H_FILE); // East
-        flips |= flips_dir_faster(player, opponent, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
-        flips |= flips_dir_faster(player, opponent, mv, 8, NOT_ROW_8); // South
-        flips |= flips_dir_faster(player, opponent, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
-
-        // Return new, updated bitboard
         if is_white {
+            flips |= flips_dir_faster(self.white, self.black, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
+            flips |= flips_dir_faster(self.white, self.black, mv, -8, NOT_ROW_1); // North
+            flips |= flips_dir_faster(self.white, self.black, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
+            flips |= flips_dir_faster(self.white, self.black, mv, -1, NOT_A_FILE); // West
+            flips |= flips_dir_faster(self.white, self.black, mv, 1, NOT_H_FILE); // East
+            flips |= flips_dir_faster(self.white, self.black, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
+            flips |= flips_dir_faster(self.white, self.black, mv, 8, NOT_ROW_8); // South
+            flips |= flips_dir_faster(self.white, self.black, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
+
             let white = self.white | mv | flips;
             let black = self.black & !flips;
             return Bitboard { white, black };
         } else {
+            flips |= flips_dir_faster(self.black, self.white, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
+            flips |= flips_dir_faster(self.black, self.white, mv, -8, NOT_ROW_1); // North
+            flips |= flips_dir_faster(self.black, self.white, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
+            flips |= flips_dir_faster(self.black, self.white, mv, -1, NOT_A_FILE); // West
+            flips |= flips_dir_faster(self.black, self.white, mv, 1, NOT_H_FILE); // East
+            flips |= flips_dir_faster(self.black, self.white, mv, 7, NOT_A_FILE_OR_ROW_8); // SW
+            flips |= flips_dir_faster(self.black, self.white, mv, 8, NOT_ROW_8); // South
+            flips |= flips_dir_faster(self.black, self.white, mv, 9, NOT_H_FILE_OR_ROW_8); // SE
+
             let black = self.black | mv | flips;
             let white = self.white & !flips;
             return Bitboard { white, black };
-        }
+        };
     }
 
     /// Get a player scores

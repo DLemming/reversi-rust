@@ -6,20 +6,14 @@ pub struct Bitboard {
     pub black: u64,
 }
 
-pub struct BitIter(pub u64);
+pub struct _BitIter(pub u64);
+pub struct BitIter64(pub u64);
 
 impl Bitboard {
     pub fn new() -> Self {
         // Starting position: center four
         let white = (1u64 << 27) | (1u64 << 36);
         let black = (1u64 << 28) | (1u64 << 35) ;
-
-        //let white = (1u64 << 1) | (1u64 << 2);
-        //let black = (1u64);
-
-        // test complex position
-        //let white = 0x244A148810000000;
-        //let black = 0x8A15681142240000;
 
         // Build board
         Bitboard { white, black }
@@ -45,28 +39,27 @@ impl Bitboard {
     }
 
     /// Sweep in all 8 directions and flip discs if necessary
-    pub fn apply_move(&self, bit_idx: u8, is_white: bool) -> Bitboard {
+    pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
         let (player, opponent) = self.get_sides(is_white);
 
         // sweep along all 8 directions
         let mut flips = 0;
-        flips |= flips_dir_faster(player, opponent, bit_idx, -9, NOT_A_FILE_OR_ROW_1); // NW
-        flips |= flips_dir_faster(player, opponent, bit_idx, -8, NOT_ROW_1);            // North
-        flips |= flips_dir_faster(player, opponent, bit_idx, -7, NOT_H_FILE_OR_ROW_1); // NE
-        flips |= flips_dir_faster(player, opponent, bit_idx, -1, NOT_A_FILE);          // West
-        flips |= flips_dir_faster(player, opponent, bit_idx, 1, NOT_H_FILE);           // East
-        flips |= flips_dir_faster(player, opponent, bit_idx, 7, NOT_A_FILE_OR_ROW_8);  // SW
-        flips |= flips_dir_faster(player, opponent, bit_idx, 8, NOT_ROW_8);             // South
-        flips |= flips_dir_faster(player, opponent, bit_idx, 9, NOT_H_FILE_OR_ROW_8);  // SE
+        flips |= flips_dir_faster(player, opponent, mv, -9, NOT_A_FILE_OR_ROW_1); // NW
+        flips |= flips_dir_faster(player, opponent, mv, -8, NOT_ROW_1);            // North
+        flips |= flips_dir_faster(player, opponent, mv, -7, NOT_H_FILE_OR_ROW_1); // NE
+        flips |= flips_dir_faster(player, opponent, mv, -1, NOT_A_FILE);          // West
+        flips |= flips_dir_faster(player, opponent, mv, 1, NOT_H_FILE);           // East
+        flips |= flips_dir_faster(player, opponent, mv, 7, NOT_A_FILE_OR_ROW_8);  // SW
+        flips |= flips_dir_faster(player, opponent, mv, 8, NOT_ROW_8);             // South
+        flips |= flips_dir_faster(player, opponent, mv, 9, NOT_H_FILE_OR_ROW_8);  // SE
 
         // Return new, updated bitboard
-        let move_bit = BIT_LOOKUP[bit_idx as usize];
         if is_white {
-            let white = self.white | move_bit | flips;
+            let white = self.white | mv | flips;
             let black = self.black & !flips;
             return Bitboard { white, black }
         } else {
-            let black = self.black | move_bit | flips;
+            let black = self.black | mv | flips;
             let white = self.white & !flips;
             return Bitboard { white, black }
         }
@@ -88,7 +81,7 @@ impl Bitboard {
 
 }
 
-impl Iterator for BitIter {
+impl Iterator for _BitIter {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -102,21 +95,23 @@ impl Iterator for BitIter {
     }
 }
 
+impl Iterator for BitIter64 {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0 == 0 {
+            None
+        } else {
+            let bit = 1u64 << self.0.trailing_zeros();
+            self.0 &= self.0 - 1; // clear lowest set bit
+            Some(bit)
+        }
+    }
+}
+
 // --------------------------------------
 // Internal helpers & constants
 // --------------------------------------
-
-// Instead of bitshifting the bit_idx, create lookup table.
-// No cycles wasted, just static lookup. Huge boost in performance.
-const BIT_LOOKUP: [u64; 64] = {
-    let mut arr = [0u64; 64];
-    let mut i = 0;
-    while i < 64 {
-        arr[i] = 1u64 << i;
-        i += 1;
-    }
-    arr
-};
 
 const _DIRECTIONS: [i8; 8] = [
     -9, -8, -7,
@@ -138,7 +133,6 @@ const NOT_H_FILE_OR_ROW_8: u64 = NOT_H_FILE & NOT_ROW_8;
 /// - `player`, `opponent`: bitboards
 /// - `delta`: positive = <<, negative = >>
 /// - `edge_mask`: to prevent wrap‐around
-///
 #[inline(always)]
 fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
@@ -162,15 +156,13 @@ fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u6
 /// Compute all disks to flip given a move
 #[inline(always)]
 // slower but better to understand version of flips_dir_faster
-fn _flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
+fn _flips_dir(player: u64, opponent: u64, mv: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
     let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
 
     // start bit = the move played
-    let mut bit= BIT_LOOKUP[bit_idx as usize];
     let mut flips = 0u64;
-
-    bit &= mask;
+    let mut bit = mv & mask;
     bit = bitshift(bit, shift);
 
     while (bit & opponent) != 0 {
@@ -188,24 +180,24 @@ fn _flips_dir(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> 
 }
 
 #[inline(always)]
-fn flips_dir_faster(player: u64, opponent: u64, bit_idx: u8, delta: i8, mask: u64) -> u64 {
+fn flips_dir_faster(player: u64, opponent: u64, mv: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
     let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
 
     let opponent_masked = opponent & mask;
 
-    let b0 = BIT_LOOKUP[bit_idx as usize] & mask;      // origin masked
-    let m1 = opponent_masked & bitshift(b0, shift);          // first step: is the neighbor an opponent?
-    let m2 = opponent_masked & bitshift(m1, shift);          // two in a row?
-    let m3 = opponent_masked & bitshift(m2, shift);          // two in a row?
-    let m4 = opponent_masked & bitshift(m3, shift);          // two in a row?
-    let m5 = opponent_masked & bitshift(m4, shift);          // two in a row?
-    let m6 = opponent_masked & bitshift(m5, shift);          // two in a row?
+    let b0 = mv & mask;         	                     // origin masked
+    let m1 = opponent_masked & bitshift(b0, shift);     // first step: is the neighbor an opponent?
+    let m2 = opponent_masked & bitshift(m1, shift);     // two in a row?
+    let m3 = opponent_masked & bitshift(m2, shift);     // three in a row?
+    let m4 = opponent_masked & bitshift(m3, shift);     // four in a row?
+    let m5 = opponent_masked & bitshift(m4, shift);     // five in a row?
+    let m6 = opponent_masked & bitshift(m5, shift);     // six a row?
 
-    let pot_flips  = m1 | m2 | m3 | m4 | m5 | m6;
-    let cap = bitshift(pot_flips, shift);
+    let flips  = m1 | m2 | m3 | m4 | m5 | m6;   // valid disks that will be flipped, if next disk is player
+    let cap = bitshift(flips, shift);   // shift possible flips 
     if (cap & player) != 0 {
-        pot_flips
+        flips
     } else {
         0
     }

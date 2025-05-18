@@ -16,16 +16,16 @@ fn game_benchmark(c: &mut Criterion) {
             let mut game = GameState::new();
 
             while !game.game_over() {
-                let mv: u8 = get_engine_move(&game, &engine);
+                let mv: u64 = get_engine_move(&game, &engine);
 
                 game.apply_move(mv);
                 game.switch_player();
             }
 
-            fn get_engine_move(game: &GameState, engine: &Engine) -> u8 {
+            fn get_engine_move(game: &GameState, engine: &Engine) -> u64 {
                 let (_score, mv) = engine.search(game);
 
-                let mv: u8 = match mv {
+                let mv: u64 = match mv {
                     Some(mv) => mv,
                     None => {
                         println!("ERROR. Should not happen. Engine did not find a move!");

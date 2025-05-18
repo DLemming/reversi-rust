@@ -19,7 +19,7 @@ impl GameState {
         }
     }
 
-    pub fn apply_move(&mut self, mv: u8) {
+    pub fn apply_move(&mut self, mv: u64) {
         // replaces current board with new one
         self.board = self.board.apply_move(mv, self.to_move.to_bool());
     }

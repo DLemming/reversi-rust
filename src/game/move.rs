@@ -1,4 +1,4 @@
-pub struct Move(pub u8);
+pub struct Move(pub u64);
 
 impl Move {
     /// Create a Move from a string like "C3"
@@ -21,13 +21,15 @@ impl Move {
 
         let x = (file as u8) - b'A';
         let y = (rank as u8) - b'1';
-        Some(Self(y * 8 + x))
+        let mv = 1u64 << (y * 8 + x);
+        Some(Self(mv))
     }
 
     /// Convert back to "A1"-style string
-    pub fn to_str(mv: u8) -> String {
-        let x = mv % 8;
-        let y = mv / 8;
+    pub fn to_str(mv: u64) -> String {
+        let bit_idx = mv.trailing_zeros() as u8;
+        let x = bit_idx % 8;
+        let y = bit_idx / 8;
         let file = (b'A' + x) as char;
         let rank = (b'1' + y) as char;
         format!("{}{}", file, rank)

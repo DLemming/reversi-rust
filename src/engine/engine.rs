@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use crate::game::game::GameState;
-use crate::game::board::{Bitboard, BitIter};
+use crate::game::board::{Bitboard, _BitIter, BitIter64};
 use crate::engine::node::Node;
 
 pub struct Engine {
@@ -20,20 +20,20 @@ impl Engine {
         }
     }
 
-    pub fn search(&self, state: &GameState) -> (i8, Option<u8>) {
+    pub fn search(&self, state: &GameState) -> (i8, Option<u64>) {
         *self.node_counter.borrow_mut() = 0;
         let start_time = Instant::now();
 
         let is_white = state.current_player().to_bool();
         let node = Node::new(state.board, is_white, state.board.legal_moves(is_white));
 
-        let mut best_move: Option<u8> = None;
+        let mut best_move: Option<u64> = None;
         let mut best_score = if node.is_white { i8::MIN } else { i8::MAX };
 
         // use custom Bit iterator
-        for bit in BitIter(node.legal_moves) {
+        for mv in BitIter64(node.legal_moves) {
             let score = self.minimax(
-                node.apply_move(bit),
+                node.apply_move(mv),
                 self.depth - 1,
                 i8::MIN,
                 i8::MAX
@@ -44,7 +44,7 @@ impl Engine {
             
             if is_better {
                 best_score = score;
-                best_move = Some(bit);
+                best_move = Some(mv);
             }
         }
 
@@ -64,8 +64,8 @@ impl Engine {
 
         let mut best_eval = if node.is_white { i8::MIN } else {i8::MAX };
 
-        for bit in BitIter(node.legal_moves) {
-            let eval = self.minimax(node.apply_move(bit), depth - 1, alpha, beta);
+        for mv in BitIter64(node.legal_moves) {
+            let eval = self.minimax(node.apply_move(mv), depth - 1, alpha, beta);
             
             if node.is_white {
                 best_eval = best_eval.max(eval);

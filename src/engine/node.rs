@@ -15,7 +15,7 @@ impl Node {
         }
     }
 
-    pub fn apply_move(&self, mv: u8) -> Self {
+    pub fn apply_move(&self, mv: u64) -> Self {
         let new_board = self.board.apply_move(mv, self.is_white);
         let (new_player, legal_moves) = switch_player(&new_board, self.is_white);
         

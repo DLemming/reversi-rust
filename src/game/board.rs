@@ -6,9 +6,6 @@ pub struct Bitboard {
     pub black: u64,
 }
 
-pub struct _BitIter(pub u64);
-pub struct BitIter64(pub u64);
-
 impl Bitboard {
     pub fn new() -> Self {
         // Starting position: center four
@@ -20,6 +17,7 @@ impl Bitboard {
     }
 
     /// Returns a bitmask of all empty squares where `side` can play
+    #[inline(always)]
     pub fn legal_moves(&self, is_white: bool) -> u64 {
         let (player, opponent) = self.get_sides(is_white);
 
@@ -39,6 +37,7 @@ impl Bitboard {
     }
 
     /// Sweep in all 8 directions and flip discs if necessary
+    #[inline(always)]
     pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
         let (player, opponent) = self.get_sides(is_white);
 
@@ -66,6 +65,7 @@ impl Bitboard {
     }
 
     /// Get a player scores
+    #[inline(always)]
     pub fn score(&self) -> (i8, i8) {
         (self.white.count_ones() as i8, self.black.count_ones() as i8)
     }
@@ -81,23 +81,13 @@ impl Bitboard {
 
 }
 
-impl Iterator for _BitIter {
-    type Item = u8;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.0 == 0 {
-            None
-        } else {
-            let bit = self.0.trailing_zeros() as u8;
-            self.0 &= self.0 - 1; // clear lowest set bit
-            Some(bit)
-        }
-    }
-}
+pub struct BitIter64(pub u64);
 
 impl Iterator for BitIter64 {
     type Item = u64;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.0 == 0 {
             None
@@ -109,15 +99,16 @@ impl Iterator for BitIter64 {
     }
 }
 
+
 // --------------------------------------
 // Internal helpers & constants
 // --------------------------------------
 
-const _DIRECTIONS: [i8; 8] = [
+/* const _DIRECTIONS: [i8; 8] = [
     -9, -8, -7,
     -1,      1,
      7,  8,  9
-];
+]; */
 
 const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;

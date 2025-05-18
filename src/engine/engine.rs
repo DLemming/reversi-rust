@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use crate::game::game::GameState;
-use crate::game::board::{Bitboard, _BitIter, BitIter64};
+use crate::game::board::{Bitboard, BitIter64};
 use crate::engine::node::Node;
 
 pub struct Engine {

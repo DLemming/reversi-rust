@@ -43,19 +43,16 @@ impl Bitboard {
     /// Sweep in all 8 directions and flip discs if necessary
     #[inline(always)]
     pub fn apply_move(&self, mv: u64, is_white: bool) -> Bitboard {
+        let white;
+        let black;
+
         if is_white {
-            let (player, opponent) = sweep(self.white, self.black, mv);
-            return Bitboard {
-                white: player,
-                black: opponent,
-            };
+            (white, black) = sweep(self.white, self.black, mv);
         } else {
-            let (player, opponent) = sweep(self.black, self.white, mv);
-            return Bitboard {
-                white: opponent,
-                black: player,
-            };
+            (black, white) = sweep(self.black, self.white, mv);
         };
+
+        Bitboard { white, black }
     }
 
     /// Get a player scores
@@ -101,6 +98,7 @@ const NOT_A_FILE_OR_ROW_8: u64 = NOT_A_FILE & NOT_ROW_8;
 const NOT_H_FILE_OR_ROW_1: u64 = NOT_H_FILE & NOT_ROW_1;
 const NOT_H_FILE_OR_ROW_8: u64 = NOT_H_FILE & NOT_ROW_8;
 
+// zero overhead, wouldn't have done this otherwise
 #[inline(always)]
 fn sweep(player: u64, opponent: u64, mv: u64) -> (u64, u64) {
     // sweep along all 8 directions
@@ -122,17 +120,17 @@ fn sweep(player: u64, opponent: u64, mv: u64) -> (u64, u64) {
 #[inline(always)]
 fn moves_dir(player_disks: u64, opponent_disks: u64, delta: i8, mask: u64) -> u64 {
     let shift = delta.abs() as u8;
-    let mask_opponent = opponent_disks & mask;
+    let opponent_masked = opponent_disks & mask;
 
-    // 0) define shift function closure to avoid branching
+    // 0) define shift function to avoid branching
     let bitshift: fn(u64, u8) -> u64 = if delta > 0 { u64::shl } else { u64::shr };
 
     // 2) sweep opponent chain
-    let mut temp = bitshift(player_disks, shift) & mask_opponent;
+    let mut temp = bitshift(player_disks, shift) & opponent_masked;
     let mut flips = temp;
 
     for _ in 0..5 {
-        temp = bitshift(temp, shift) & mask_opponent;
+        temp = bitshift(temp, shift) & opponent_masked;
         flips |= temp;
     }
 

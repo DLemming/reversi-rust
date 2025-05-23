@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use crate::engine::node::Node;
-use crate::game::board::{BitIter64, Bitboard};
+use crate::game::board::{BitIter64};
 use crate::game::game::GameState;
 
 pub struct Engine {
@@ -54,7 +54,7 @@ impl Engine {
 
         // depth 0 or game over
         if (depth == 0) || (node.legal_moves == 0) {
-            return static_eval(&node.board);
+            return self.static_eval(&node, depth);
         }
 
         if node.is_white {
@@ -65,7 +65,9 @@ impl Engine {
                 best_eval = best_eval.max(eval);
                 alpha = alpha.max(best_eval);
 
-                if beta <= alpha { return best_eval; }
+                if beta <= alpha {
+                    return best_eval;
+                }
             }
             return best_eval;
         } else {
@@ -76,15 +78,42 @@ impl Engine {
                 best_eval = best_eval.min(eval);
                 beta = beta.min(best_eval);
 
-                if beta <= alpha { return best_eval; }
+                if beta <= alpha {
+                    return best_eval;
+                }
             }
             return best_eval;
         }
     }
+
+    #[inline(always)]
+    fn static_eval(&self, node: &Node, depth: u8) -> i8 {
+        let (white, black) = node.board.score();
+        let score = white - black;
+
+        // game over, move already passed back to original player, which again has no moves
+        if node.legal_moves == 0 {
+            if score == 0 {
+                return 0;
+            }
+            if node.is_white {
+                // white is current player
+                return match score > 0 {
+                    true => i8::MAX - (self.depth - depth) as i8, // white wins & is player
+                    false => i8::MIN + (self.depth - depth) as i8                // black wins while white is player
+                };
+            } else {
+                // black is current player
+                return match score < 0 {
+                    true => i8::MIN + (self.depth - depth) as i8, // black wins & is player
+                    false => i8::MAX - (self.depth - depth) as i8 // white wins while black is player
+                };
+            }
+        }
+
+        // if not game over, just return score for now
+        return white - black;
+    }
+
 }
 
-#[inline(always)]
-fn static_eval(board: &Bitboard) -> i8 {
-    let (white, black) = board.score();
-    return white - black;
-}
